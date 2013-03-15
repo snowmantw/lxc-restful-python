@@ -1,0 +1,9 @@
+lxml
+
+# For webapp2
+WebOb
+Paste
+webapp2
+
+mimerender
+simplejson
