@@ -1,5 +1,5 @@
 
-#import libvirt
+import libvirt
 import sys
 from lxml import etree
 import webapp2
