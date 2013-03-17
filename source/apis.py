@@ -1,6 +1,8 @@
 
-# Find the XML in database and allow user use RESTful way to manipulate it,
+# 1. Low level: Find the XML in database and allow user use RESTful way to manipulate it,
 # then commit and to let libvirt run it.
+#
+# 2. High level: Provide some basic APIs to manipulate containers, not directly expose XMLs.
 
 import libvirt
 import sys
@@ -25,7 +27,35 @@ conn = libvirt.openReadOnly('lxc:///')
 vdomain = conn.lookupByName('vanilla')
 vxml = vdomain.XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
-class Lxc(webapp2.RequestHandler):
+class LXC():
+
+    class BuildDomain:
+
+        def __init__(self):
+            self.xmlref = etree.XML('<domain></domain>') 
+        
+        @staticmethod
+        def init():
+            '''static method to start building. '''
+            return LXC.BuildDomain()
+
+        def vcpu(self, num):
+            '''set the domain's one attribute. '''
+            e = self.xmlref.find('vcpu')
+            if e is None:
+                e = etree.Element('vcpu')
+                e.text = str(num) 
+                self.xmlref.append(e)
+            else:
+                e.text = str(num)
+            return self
+
+        def str(self):
+            '''return the stringified result.'''
+            return etree.tostring(self.xmlref)
+        
+
+class APIs(webapp2.RequestHandler):
 
     # Need to add decoration upon every method.
     
@@ -40,9 +70,9 @@ class Lxc(webapp2.RequestHandler):
         if not _id:
             return {'message': 'GET /lxc/'}
         else:
-            tree = etree.parse(cStringIO.StringIO(vxml))
-            resource = tree.xpath('/'+_id)
-            return {'message': 'GET XPath /lxc/%s/'%_id, 'resource': resource[0].tag}
+            # Testing the builder.
+            resource = LXC.BuildDomain.init().vcpu(3).str()
+            return {'message': 'GET XPath /lxc/%s/'%_id, 'resource': resource}
 
     @mimerender(
         default = 'html'
@@ -84,7 +114,7 @@ class Lxc(webapp2.RequestHandler):
             return {'message': 'DELETE /lxc/%s/'%_id}
 
 app = webapp2.WSGIApplication([
-    ('/lxc/(.*)', Lxc)
+    ('/lxc/(.*)', APIs)
 ], debug=True)
 
 def main():
