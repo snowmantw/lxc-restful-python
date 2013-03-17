@@ -33,6 +33,22 @@ class LXC():
 
         def __init__(self):
             self.xmlref = etree.XML('<domain></domain>') 
+
+        """update or create a new one in the tree; find it according to the tag name.
+
+        :param tree: ElementTree from etree; will be modified directly.
+        :param tag: String
+        :param text: String
+        :returns: ElementTree 
+        """
+        @staticmethod
+        def __setelement(tree, tag, text):
+            e = tree.find(tag)
+            if e is None:
+                e = etree.Element(tag)
+                tree.append(e)
+            e.text = text
+            return tree
         
         @staticmethod
         def init():
@@ -41,13 +57,7 @@ class LXC():
 
         def vcpu(self, num):
             '''set the domain's one attribute. '''
-            e = self.xmlref.find('vcpu')
-            if e is None:
-                e = etree.Element('vcpu')
-                e.text = str(num) 
-                self.xmlref.append(e)
-            else:
-                e.text = str(num)
+            self.__setelement(self.xmlref, 'vcpu', str(num))
             return self
 
         def str(self):
@@ -71,7 +81,8 @@ class APIs(webapp2.RequestHandler):
             return {'message': 'GET /lxc/'}
         else:
             # Testing the builder.
-            resource = LXC.BuildDomain.init().vcpu(3).str()
+            # The later `vcpu` should only replace the former, not append a new one into the XML.
+            resource = LXC.BuildDomain.init().vcpu(3).vcpu(5).str()
             return {'message': 'GET XPath /lxc/%s/'%_id, 'resource': resource}
 
     @mimerender(
