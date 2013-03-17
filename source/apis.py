@@ -1,19 +1,29 @@
 
+# Find the XML in database and allow user use RESTful way to manipulate it,
+# then commit and to let libvirt run it.
+
 import libvirt
 import sys
 from lxml import etree
 import webapp2
 import simplejson as json
 import mimerender
+import cStringIO
 
 mimerender = mimerender.Webapp2MimeRender()
 
-render_xml = lambda message: '<message>%s</message>'%message
+render_xml = lambda message, resource="": '<message>%s<resource>%s</resource></message>'% (message, resource)
 
 # Pack every arguments as dict then render it using dump.
 render_json = lambda **args: json.dump(args) 
-render_txt = lambda message: message
-render_html = lambda message: '<html><body>%s</body></html>'%message
+render_txt = lambda message, resource="": '%s %s'% (message, resource)
+render_html = lambda message, resource="": '<html><body>%s<p>%s</p></body></html>'% (message, resource)
+
+# Test retrieve one XML, then binding URL to XPath for traversing it.
+
+conn = libvirt.openReadOnly('lxc:///')
+vdomain = conn.lookupByName('vanilla')
+vxml = vdomain.XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
 class Lxc(webapp2.RequestHandler):
 
@@ -30,7 +40,9 @@ class Lxc(webapp2.RequestHandler):
         if not _id:
             return {'message': 'GET /lxc/'}
         else:
-            return {'message': 'GET /lxc/%s/'%_id}
+            tree = etree.parse(cStringIO.StringIO(vxml))
+            resource = tree.xpath('/'+_id)
+            return {'message': 'GET XPath /lxc/%s/'%_id, 'resource': resource[0].tag}
 
     @mimerender(
         default = 'html'
