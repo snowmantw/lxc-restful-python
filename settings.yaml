@@ -1,0 +1,5 @@
+build-domain: 
+    path: 
+        containers: /tmp/test2
+        ostemplate: /tmp/test
+        xmltemplate: /tmp/vanilla.xml
